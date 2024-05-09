@@ -1,4 +1,6 @@
 mod player;
+mod markup_palette;
+mod project;
 
 use godot::prelude::*;
 

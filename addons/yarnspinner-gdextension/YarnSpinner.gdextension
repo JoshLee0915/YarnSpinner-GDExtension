@@ -4,11 +4,11 @@ compatibility_minimum = 4.1
 reloadable = true
 
 [libraries]
-linux.debug.x86_64 =     "./gdextension/target/debug/libYarnSpinner_GDExtension.so"
-linux.release.x86_64 =   "./gdextension/target/release/libYarnSpinner_GDExtension.so"
-windows.debug.x86_64 =   "./gdextension/target/debug/YarnSpinner_GDExtension.dll"
-windows.release.x86_64 = "./gdextension/target/release/YarnSpinner_GDExtension.dll"
-macos.debug =            "./gdextension/target/debug/libYarnSpinner_GDExtension.dylib"
-macos.release =          "./gdextension/target/release/libYarnSpinner_GDExtension.dylib"
-macos.debug.arm64 =      "./gdextension/target/debug/libYarnSpinner_GDExtension.dylib"
-macos.release.arm64 =    "./gdextension/target/release/libYarnSpinner_GDExtension.dylib"
+linux.debug.x86_64 =     "res://addons/yarnspinner-gdextension/gdextension/target/debug/libyarn_spinner_gdextension.so"
+linux.release.x86_64 =   "res://addons/yarnspinner-gdextension/gdextension/target/release/libyarn_spinner_gdextension.so"
+windows.debug.x86_64 =   "res://addons/yarnspinner-gdextension/gdextension/target/debug/yarn_spinner_gdextension.dll"
+windows.release.x86_64 = "res://addons/yarnspinner-gdextension/gdextension/target/release/yarn_spinner_gdextension.dll"
+macos.debug =            "res://addons/yarnspinner-gdextension/gdextension/target/debug/libyarn_spinner_gdextension.dylib"
+macos.release =          "res://addons/yarnspinner-gdextension/gdextension/target/release/libyarn_spinner_gdextension.dylib"
+macos.debug.arm64 =      "res://addons/yarnspinner-gdextension/gdextension/target/debug/libyarn_spinner_gdextension.dylib"
+macos.release.arm64 =    "res://addons/yarnspinner-gdextension/gdextension/target/release/libyarn_spinner_gdextension.dylib"

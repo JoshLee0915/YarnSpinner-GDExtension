@@ -1,5 +1,5 @@
 [package]
-name = "YarnSpinner-GDExtension"
+name = "yarn_spinner_gdextension"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,5 +7,7 @@ edition = "2021"
 crate-type = ["cdylib"]  # Compile this crate to a dynamic C library.
 
 [dependencies]
-godot = { git = "https://github.com/godot-rust/gdext", branch = "master" }
-yarnspinner = "0.2.0"
+godot = { git = "https://github.com/godot-rust/gdext", branch = "master", features = ["serde"] }
+serde = { version = "1.0.201", features = ["derive"] }
+serde_json = "1.0.117"
+yarnspinner = {version = "0.2.0", features = ["serde"] }
