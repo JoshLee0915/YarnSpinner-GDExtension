@@ -11,7 +11,7 @@ class ToolsMenuItem:
 		
 const TOOLS_MENU_NAME = "YarnSpinner"
 
-var _import_plugins: Array[EditorImportPlugin] = []
+var _import_plugins: Array[EditorImportPlugin] = [YarnProjectImporter.new()]
 var _inspector_plugins: Array[EditorInspectorPlugin] = []
 var _tools_menu_items: Dictionary = {
 	0: ToolsMenuItem.new("Create Yarn Script", _create_yarn_script),
