@@ -34,6 +34,8 @@ static func save_yarn_project(project: YarnProject):
 		print("Wrote updated YarnProject %s to %s" % [project.resource_name, project.resource_path])
 	
 static func _update_yarn_project_task(project: YarnProject):
+	# Attempt to update the project file incase there where any changes
+	project.load_from_file(project.json_project_path)
 	YarnCompiler.compile_all_scripts(project)
 	save_yarn_project(project)
 	

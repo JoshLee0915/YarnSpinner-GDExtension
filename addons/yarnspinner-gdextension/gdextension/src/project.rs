@@ -1,12 +1,15 @@
 use std::collections::HashMap;
 use std::fs;
+use std::path::Path;
 use std::str::FromStr;
 
 use glob::glob;
+use godot::engine::ProjectSettings;
 use godot::engine::utilities::push_error;
 use godot::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
 use crate::function_info::FunctionInfo;
 use crate::gd_declaration::GDDeclaration;
 
@@ -31,11 +34,9 @@ struct Project {
     #[serde(rename = "baseLanguage")]
     pub base_language: String,
     #[serde(rename = "definitions")]
-    pub definitions: String,
+    pub definitions: Option<String>,
     #[serde(rename = "compilerOptions")]
     pub compiler_options: HashMap<String, Value>,
-    #[serde(skip_serializing)]
-    pub path: String
 }
 
 impl Default for Project {
@@ -46,9 +47,8 @@ impl Default for Project {
             exclude_file_patterns: vec![],
             localization: Default::default(),
             base_language: "en".to_string(), // TODO: Find better way to set this instead of just defaulting to english
-            definitions: "".to_string(),
+            definitions: None,
             compiler_options: Default::default(),
-            path: Default::default()
         }
     }
 }
@@ -110,14 +110,15 @@ impl YarnProject {
     #[func]
     pub fn load_from_file(&mut self, file: GString) {
         // TODO: Better error handling
-        let mut project = serde_json::from_str::<Project>(&*fs::read_to_string(file.to_string()).unwrap()).expect("Failed to serialize json to Project type");
-        project.path = file.to_string();
-
+        let path = ProjectSettings::singleton().globalize_path(file.clone()).to_string();
+        let project_file = fs::read_to_string(&path).expect(&format!("Failed to load {}", &path));
+        let project = serde_json::from_str::<Project>(&project_file).expect("Failed to serialize json to Project type");
         if project.file_version != 2 {
             push_error( GString::from_str("Project file at %s has incorrect file version (expected %d, got %d)").unwrap().to_variant(), &[file.to_variant(), 2.to_variant(), self.project.file_version.to_variant()]);
             return;
         }
-        self.project.path = file.to_string();
+        self.project = project;
+        self.json_project_path = path.to_godot();
     }
 
     #[func]
@@ -129,18 +130,42 @@ impl YarnProject {
 
     #[func]
     pub fn get_source_files(&self) -> Array<GString> {
-        let mut array = Array::<GString>::new();
-        for pattern in &self.project.source_files {
-            for entry in glob(pattern.as_str()).expect("Failed to read glob pattern") {
+        let json_path_string = self.json_project_path.to_string();
+        let json_path = Path::new(&json_path_string);
+        let working_dir = match json_path.parent() {
+            None => "".to_string(),
+            Some(value) => format!("{}/", value.to_str().unwrap().to_string())
+        };
+
+        let mut exclude = Array::<GString>::new();
+        for pattern in &self.project.exclude_file_patterns {
+            let full_pattern = format!("{}{}", working_dir, pattern);
+            for entry in glob(&full_pattern).expect("Failed to read glob pattern") {
                 match entry {
                     Ok(path) => {
-                        array.push(GString::from_str(path.to_str().unwrap()).unwrap())
+                        exclude.push(GString::from_str(path.to_str().unwrap()).unwrap())
                     }
-                    Err(_) => {}
+                    Err(err) => { panic!("{}", err) }
                 }
             }
         }
-        return array;
+
+        let mut source_files = Array::<GString>::new();
+        for pattern in &self.project.source_files {
+            let full_pattern = format!("{}{}", working_dir, pattern);
+            for entry in glob(&full_pattern).expect("Failed to read glob pattern") {
+                match entry {
+                    Ok(path) => {
+                        let file_path = GString::from_str(path.to_str().unwrap()).unwrap();
+                        if !exclude.contains(&file_path) {
+                            source_files.push(file_path);
+                        }
+                    }
+                    Err(err) => { panic!("{}", err) }
+                }
+            }
+        }
+        return source_files;
     }
 
     #[func]

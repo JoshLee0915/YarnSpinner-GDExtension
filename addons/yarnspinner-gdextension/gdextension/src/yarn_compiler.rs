@@ -30,7 +30,7 @@ impl YarnCompilerSingleton {
         yarn_project.base_mut().set_name(asset_path.file_name().unwrap().to_str().unwrap().to_godot());
         let source_scripts = yarn_project.get_source_files();
         if source_scripts.is_empty() {
-            push_error(GString::from("No .yarn files found matching the %s in %s").to_variant(), &[]);
+            push_error(GString::from(format!("No .yarn files found matching the set pattern {}", yarn_project.get_source_files())).to_variant(), &[]);
             return;
         }
 
@@ -120,7 +120,7 @@ impl YarnCompilerSingleton {
                         .done();
 
                     if err != Error::OK {
-                        push_error("Failed to save updated YarnProject: %s".to_variant(), &[err.to_variant()]);
+                        push_error(format!("Failed to save updated YarnProject: {}", err.to_variant()).to_variant(), &[]);
                     }
                 }
                 Err(errors) => {
@@ -132,7 +132,7 @@ impl YarnCompilerSingleton {
                         gd_error_mut.message = info.message.to_godot();
                         gd_error_mut.context = info.context.unwrap_or("".to_string()).to_godot();
 
-                        push_error("Error compiling: ".to_variant(), &[info.message.to_variant()]);
+                        push_error(format!("Error compiling: {}", info.message).to_variant(), &[]);
                     }
                 }
             }
