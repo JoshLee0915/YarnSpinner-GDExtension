@@ -24,8 +24,8 @@ func _get_priority():
 func _get_import_order():
 	return 0
 	
-func _get_import_options(path, preset_index):
-	return []
+func _get_import_options(_path, _preset_index):
+	return {}
 	
 func _import(source_file, save_path, options, platform_variants, gen_files):
 	var project: YarnProject = null

@@ -1,0 +1,14 @@
+[remap]
+
+importer="yarnscript"
+type="Resource"
+uid="uid://8nv7x4232vdx"
+path="res://.godot/imported/HelloWorld.yarn-1a5044becd57ed157a75c30afd4efaf1.tres"
+
+[deps]
+
+source_file="res://Samples/test/HelloWorld.yarn"
+dest_files=["res://.godot/imported/HelloWorld.yarn-1a5044becd57ed157a75c30afd4efaf1.tres"]
+
+[params]
+

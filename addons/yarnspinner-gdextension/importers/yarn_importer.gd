@@ -24,6 +24,9 @@ func _get_priority():
 func _get_import_order():
 	return 0
 	
+func _get_import_options(_path, _preset_index):
+	return {}
+	
 func _import(source_file, save_path, options, platform_variants, gen_files):
 	var extension = source_file.get_extension()
 	
@@ -47,4 +50,5 @@ func _import_yarn(source_file: String):
 			" Create a Yarn Project by selecting YarnProject from the create new resource menu and make sure this" +
 			" script matches one of the patterns defined for yarn source files.")
 	else:
-		pass # TODO: Project stuff that needs the Project Editor Utility
+		var project = ResourceLoader.load(project_path)
+		YarnProjectEditorUtility.update_yarn_project(project)
