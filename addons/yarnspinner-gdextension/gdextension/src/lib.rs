@@ -1,9 +1,12 @@
-mod player;
 mod markup_palette;
 mod project;
 mod function_info;
 mod yarn_compiler;
 mod gd_declaration;
+mod gd_string_info;
+mod gd_compilation;
+mod localization;
+mod string_table_entry;
 
 use godot::engine::Engine;
 use godot::prelude::*;

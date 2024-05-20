@@ -3,10 +3,12 @@ use godot::engine::global::Error;
 use godot::engine::resource_saver::SaverFlags;
 use godot::engine::utilities::push_error;
 use godot::prelude::*;
+use yarnspinner::compiler::Compiler;
 use yarnspinner::core::Library;
 use yarnspinner::core::Type::Function;
 use yarnspinner::prelude::*;
 
+use crate::gd_compilation::GDCompilation;
 use crate::gd_declaration::GDDeclaration;
 use crate::project::{YarnProject, YarnProjectError};
 
@@ -34,7 +36,6 @@ impl YarnCompilerSingleton {
             return;
         }
 
-        let library = Library::standard_library();
         yarn_project.project_errors = array![];
 
         // We can now compile!
@@ -47,15 +48,7 @@ impl YarnCompilerSingleton {
         }
 
         if !yarn_files.is_empty() {
-            let mut job = YarnCompiler::new();
-            job.compilation_type = CompilationType::FullCompilation;
-            job.library = library;
-
-            for path in yarn_files {
-                job.read_file(&path);
-            }
-
-            match job.compile() {
+            match Self::compile_files(&yarn_files) {
                 Ok(result) => {
                     if result.program.is_none() {
                         push_error("public error: Failed to compile: resulting program was null, but compiler did not report errors.".to_variant(), &[]);
@@ -91,7 +84,7 @@ impl YarnCompilerSingleton {
 
                         match existing_declaration {
                             None => {
-                                match GDDeclaration::from_declaration(declaration) {
+                                match GDDeclaration::from_declaration(&declaration) {
                                     Ok(decl) => new_declarations.push(decl),
                                     Err(e) => {
                                         panic!("{}", e)
@@ -137,5 +130,46 @@ impl YarnCompilerSingleton {
                 }
             }
         }
+    }
+
+    #[func]
+    pub fn compile_yarn_files(yarn_files: Array<GString>) -> Gd<GDCompilation> {
+        let mut yarn_file_paths = vec![];
+        for source_script in yarn_files.iter_shared() {
+            if !source_script.is_empty() {
+                let global_path = ProjectSettings::singleton().globalize_path(source_script).to_string();
+                yarn_file_paths.push(global_path.clone());
+            }
+        }
+
+        return match Self::compile_files(&yarn_file_paths) {
+            Ok(compilation) => GDCompilation::from_compilation(compilation),
+            Err(errors) => GDCompilation::from_compilation_error(errors),
+        }
+    }
+
+    #[func]
+    pub fn add_tags_to_lines(contents: GString, existing_line_tags: Array<GString>) -> GString {
+        return match Compiler::add_tags_to_lines(contents, existing_line_tags.iter_shared().map(|tag| { LineId::from(tag)}).collect()) {
+            Ok(result) => result.unwrap_or("".to_string()).to_godot(),
+            Err(err) => {
+                for err_info in err.0 {
+                    push_error(format!("Error: {}\nFile: {}", err_info.message, err_info.file_name.unwrap_or("None".to_string())).to_variant(), &[]);
+                }
+                return GString::from("");
+            }
+        }
+    }
+
+    fn compile_files(yarn_files: &Vec<String>) -> yarnspinner::compiler::Result<Compilation> {
+        let mut job = YarnCompiler::new();
+        job.compilation_type = CompilationType::FullCompilation;
+        job.library = Library::standard_library();
+
+        for path in yarn_files {
+            job.read_file(&path);
+        }
+
+        return job.compile();
     }
 }

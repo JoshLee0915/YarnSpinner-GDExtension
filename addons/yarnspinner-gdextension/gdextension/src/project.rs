@@ -12,6 +12,7 @@ use serde_json::Value;
 
 use crate::function_info::FunctionInfo;
 use crate::gd_declaration::GDDeclaration;
+use crate::localization::Localization;
 
 #[derive(Serialize, Deserialize)]
 struct LocalizationInfo {
@@ -54,10 +55,19 @@ impl Default for Project {
 }
 
 #[derive(GodotClass)]
+#[class(tool, init, base=Object)]
+pub struct YarnLocalizationInfo {
+    base: Base<Object>,
+    #[export]
+    pub assets: GString,
+    #[export]
+    pub strings: GString,
+}
+
+#[derive(GodotClass)]
 #[class(tool, init, base=Resource)]
 pub struct YarnProjectError {
     base: Base<Resource>,
-
     #[export]
     pub file_name: GString,
     #[export]
@@ -71,7 +81,6 @@ pub struct YarnProjectError {
 pub struct YarnProject {
     base: Base<Resource>,
     project: Project,
-
     #[export]
     pub last_import_had_implicit_string_ids: bool,
     #[export]
@@ -90,6 +99,8 @@ pub struct YarnProject {
     pub list_of_functions: Array<Gd<FunctionInfo>>,
     #[export]
     pub compiled_yarn_program_json: GString,
+    #[export]
+    pub base_localization: Option<Gd<Localization>>,
 }
 
 #[godot_api]
@@ -119,6 +130,22 @@ impl YarnProject {
         }
         self.project = project;
         self.json_project_path = path.to_godot();
+    }
+
+    #[func]
+    pub fn get_base_language(&self) -> GString {
+        return self.project.base_language.to_godot();
+    }
+
+    #[func]
+    pub fn set_base_language(&mut self, base_language: GString) {
+        self.project.base_language = base_language.to_string();
+    }
+
+    #[func]
+    pub fn save_project(&self) {
+        let project_path = &self.json_project_path;
+        self.save_to_file(ProjectSettings::singleton().globalize_path(project_path.clone()));
     }
 
     #[func]
@@ -181,6 +208,59 @@ impl YarnProject {
         }
         return patterns;
     }
+
+    #[func]
+    pub fn add_source_file_pattern(&mut self, pattern: GString) -> Array<GString> {
+        if self.project.source_files.contains(&pattern.to_string()) {
+            self.project.source_files.push(pattern.to_string());
+        }
+        return self.get_source_files();
+    }
+
+    #[func]
+    pub fn remove_source_file_pattern(&mut self, pattern: GString) -> Array<GString> {
+        let mut new_source_file_list = vec![];
+        for source_file in &self.project.source_files {
+            if !source_file.eq(&pattern.to_string()) {
+                new_source_file_list.push(source_file.clone());
+            }
+        }
+        self.project.source_files = new_source_file_list;
+        return self.get_source_files();
+    }
+    
+    #[func]
+    pub fn get_localization(&self) -> Dictionary {
+        let mut localization = Dictionary::new();
+        for (key, localization_info) in &self.project.localization {
+            localization.set(key.to_godot(), Gd::from_init_fn(|base| {
+                return YarnLocalizationInfo{
+                    base,
+                    assets: localization_info.assets.to_godot(),
+                    strings: localization_info.strings.to_godot(),
+                }
+            }));
+        }
+        return localization;
+    }
+
+    #[func]
+    pub fn localization_contains_key(&self, locale_code: GString) -> bool {
+        return self.project.localization.contains_key(&locale_code.to_string());
+    }
+
+    #[func]
+    pub fn set_localization(&mut self, locale_code: GString, localization_info: Gd<YarnLocalizationInfo>) {
+        self.project.localization.insert(locale_code.to_string(), LocalizationInfo{
+            assets: localization_info.bind().assets.to_string(),
+            strings: localization_info.bind().strings.to_string(),
+        });
+    }
+
+    #[func]
+    pub fn remove_localization(&mut self, locale_code: GString) {
+        self.project.localization.remove(&locale_code.to_string());
+    }
 }
 
 #[godot_api]
@@ -198,6 +278,7 @@ impl IResource for YarnProject {
             declarations: array![],
             list_of_functions: array![],
             compiled_yarn_program_json: Default::default(),
+            base_localization: None,
         }
     }
 }

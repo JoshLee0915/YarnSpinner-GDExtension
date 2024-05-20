@@ -37,19 +37,20 @@ pub struct GDDeclaration {
 }
 
 impl GDDeclaration {
-    pub fn from_declaration(declaration: Declaration) -> Result<Gd<GDDeclaration>, Box<dyn Error>> {
+    pub fn from_declaration(declaration: &Declaration) -> Result<Gd<GDDeclaration>, Box<dyn Error>> {
+        let decl = declaration.clone();
         let mut gd_declaration = GDDeclaration::new_gd();
         let mut decl_bind = gd_declaration.bind_mut();
 
-        decl_bind.name = declaration.name.to_godot();
-        decl_bind.description = declaration.description.unwrap_or("".to_string()).to_godot();
-        decl_bind.is_implicit = declaration.is_implicit;
-        decl_bind.source_yarn_asset_path = ProjectSettings::singleton().localize_path(declaration.source_file_name.to_string().to_godot());
+        decl_bind.name = decl.name.to_godot();
+        decl_bind.description = decl.description.unwrap_or("".to_string()).to_godot();
+        decl_bind.is_implicit = decl.is_implicit;
+        decl_bind.source_yarn_asset_path = ProjectSettings::singleton().localize_path(decl.source_file_name.to_string().to_godot());
 
-        return match declaration.r#type {
+        return match decl.r#type {
             Type::Boolean => {
                 decl_bind.yarn_type = YarnBuiltInTypes::Boolean;
-                if let YarnValue::Boolean(value) = declaration.default_value.unwrap_or(YarnValue::Boolean(false)) {
+                if let YarnValue::Boolean(value) = decl.default_value.unwrap_or(YarnValue::Boolean(false)) {
                     decl_bind.default_value_bool = value;
                 }
                 drop(decl_bind);
@@ -57,7 +58,7 @@ impl GDDeclaration {
             }
             Type::Number => {
                 decl_bind.yarn_type = YarnBuiltInTypes::Number;
-                if let YarnValue::Number(value) = declaration.default_value.unwrap_or(YarnValue::Number(0.0)) {
+                if let YarnValue::Number(value) = decl.default_value.unwrap_or(YarnValue::Number(0.0)) {
                     decl_bind.default_value_number = value;
                 }
                 drop(decl_bind);
@@ -65,7 +66,7 @@ impl GDDeclaration {
             }
             Type::String => {
                 decl_bind.yarn_type = YarnBuiltInTypes::String;
-                if let YarnValue::String(value) = declaration.default_value.unwrap_or(YarnValue::String("".to_string())) {
+                if let YarnValue::String(value) = decl.default_value.unwrap_or(YarnValue::String("".to_string())) {
                     decl_bind.default_value_string = value.to_godot();
                 }
                 drop(decl_bind);
