@@ -112,7 +112,7 @@ impl YarnProject {
                 GString::from_str(json.as_str()).unwrap().to_variant()
             }
             Err(err) => {
-                push_error(GString::from_str(err.to_string().as_str()).unwrap().to_variant(), &[]);
+                push_error(&[GString::from_str(err.to_string().as_str()).unwrap().to_variant()]);
                 Variant::nil()
             }
         }
@@ -125,7 +125,7 @@ impl YarnProject {
         let project_file = fs::read_to_string(&path).expect(&format!("Failed to load {}", &path));
         let project = serde_json::from_str::<Project>(&project_file).expect("Failed to serialize json to Project type");
         if project.file_version != 2 {
-            push_error( GString::from_str("Project file at %s has incorrect file version (expected %d, got %d)").unwrap().to_variant(), &[file.to_variant(), 2.to_variant(), self.project.file_version.to_variant()]);
+            push_error(&[format!("Project file at {} has incorrect file version (expected {}, got {})", file, 2,  self.project.file_version).to_variant()]);
             return;
         }
         self.project = project;

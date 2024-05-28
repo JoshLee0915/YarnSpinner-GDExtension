@@ -10,6 +10,7 @@ Now we'll jump to another node!
 ===
 
 title: AnotherNode
+position: 1,213
 ---
 Now, a character will talk. Notice how the upper left corner of the dialogue will show their name.
 Hohenheim: Hi, I'm Jan Hohenheim, creator of Yarn Spinner for Rust. I hope you enjoy using it!

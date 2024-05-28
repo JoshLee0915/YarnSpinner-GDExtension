@@ -6,7 +6,13 @@ mod gd_declaration;
 mod gd_string_info;
 mod gd_compilation;
 mod localization;
-mod string_table_entry;
+mod dialogue_runner;
+mod yarn_variable_storage;
+mod translation_server_text_provider;
+mod yarn_line;
+mod yarn_dialogue_option;
+mod yarn_conversion_utils;
+mod yarn_callable;
 
 use godot::engine::Engine;
 use godot::prelude::*;

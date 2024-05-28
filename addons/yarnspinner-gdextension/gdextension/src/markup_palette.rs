@@ -15,7 +15,7 @@ impl MarkupPalette {
     pub fn color_for_marker(&self, marker: GString) -> Variant {
         return match self.colour_markers.get(marker) {
             Some(value) => {
-                if value.get_type() == VariantType::Color {
+                if value.get_type() == VariantType::COLOR {
                     return value;
                 }
                 return Variant::nil()

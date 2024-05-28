@@ -132,18 +132,12 @@ func _parse_begin(object):
 	add_tags_button.pressed.connect(_on_add_tags_clicked)
 	add_custom_control(add_tags_button)
 	
-	var update_loacalizations_button = Button.new()
-	update_loacalizations_button.text = "Update Localizations"
-	update_loacalizations_button.tooltip_text = "Update Localization CSV and Godot .translation Files"
-	update_loacalizations_button.pressed.connect(_on_update_localizations_clicked)
-	add_custom_control(update_loacalizations_button)
-	
 	var script_patterns_grid = GridContainer.new()
 	script_patterns_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	script_patterns_grid.columns = 2
 	script_patterns_grid.tooltip_text = "YarnSpinner-Godot will search for all .yarn files that match the \n list of patterns in sourceFiles in %s. Each pattern will be used to search the file system for files with names that match specified patterns sepcified in the yarn project.\nThese patterns are relative to the location of this YarnProject\nA list of .yarn files found this way will be displayed here." % _project.json_project_path
 	
-	for pattern in _project.get_source_files():		
+	for pattern in _project.get_source_file_patterns():
 		var pattern_label = Label.new()
 		pattern_label.text = pattern
 		# TODO: Find a better way to handle this
@@ -282,8 +276,8 @@ func _parse_begin(object):
 	add_custom_control(base_local_row)
 	
 	var write_base_csv_button = Button.new()
-	write_base_csv_button.text = "Export Strings and Metadata as CSV"
-	write_base_csv_button.tooltip_text = "Write all of the lines in your Yarn Project to a CSV, including the metadata, line IDs, and the names of the nodes in which each line appears."
+	write_base_csv_button.text = "Generate Godot Translation CSV"
+	write_base_csv_button.tooltip_text = "Write all of the line ids in your Yarn Project to a godot translation CSV."
 	write_base_csv_button.pressed.connect(_on_base_language_csv_clicked)
 	add_custom_control(write_base_csv_button)
 	
@@ -380,9 +374,6 @@ func _set_errors(errors: Array[YarnProjectError]):
 			var context_label = _context_label_scene.instantiate() as Label
 			context_label.text = "    %s" % error.context
 			_error_container.add_child(context_label)
-			
-func _on_update_localizations_clicked():
-	YarnProjectEditorUtility.update_localization_csvs(_project)
 
 func _set_source_scripts(scripts: Array[String]):
 	_source_scripts_list_label.text = ""
@@ -417,9 +408,9 @@ func _on_base_language_csv_clicked():
 	var dialog = FileDialog.new()
 	dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
 	dialog.access = FileDialog.ACCESS_FILESYSTEM
-	dialog.title = "Select CSV Path for the base locale %s" % _project.get_base_language()
+	dialog.title = "Select CSV Path for the translation file"
 	dialog.add_filter("*.csv; CSV File")
-	dialog.files_selected.connect(_on_base_language_csv_file_selected)
+	dialog.file_selected.connect(_on_base_language_csv_file_selected)
 	EditorInterface.get_base_control().add_child(dialog)
 	dialog.popup_centered(Vector2i(700, 500))
 

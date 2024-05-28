@@ -79,146 +79,32 @@ static func load_all_yarn_projects():
 	for project_path in _find_all_yarn_projects():
 		projects.push_back(ResourceLoader.load(project_path) as YarnProject)
 	return projects
-	
-static func update_localization_csvs(project: YarnProject):
-	var localization_csvs = project.get_localization()
-	if !localization_csvs.is_empty():
-		var modified_files = []
-		if project.base_localization == null:
-			YarnCompiler.compile_all_scripts(project)
 			
-		var localization = project.get_localization()
-		for key in localization:
-			var localization_info = localization[key] as YarnLocalizationInfo
-			if localization_info.strings.is_empty():
-				push_error("Can't update localization for %s because it doesn't have a Strings file." % key)
-				continue
-				
-			var file_was_changed = _update_localization_file(project.base_localization.get_string_table_entries(), key, localization_info.strings)
-			if file_was_changed:
-				modified_files.push_back(localization_info.strings)
-				
-		if !modified_files.is_empty():
-			print("Updated the following files: %s" % ", ".join(modified_files))
-		else:
-			print("No Localization CSV files needed updating.")
-			
-static func _update_localization_file(base_localization_strings: Array[GDStringTableEntry], language: String, csv_resource_path: String, generate_translation = true):
+static func _update_localization_file(localizations: Array[Localization], csv_resource_path: String):
 	var abs_csv_path = ProjectSettings.globalize_path(csv_resource_path)
 	
-	# Tracks if the translated localisation needed modifications
-	# (either new lines added, old lines removed, or changed lines
-	# flagged)
-	var modificaions_needed = false
-	
-	var translated_strings: Array[GDStringTableEntry] = []
+	# Attempt to load any exsiting localization CSVs
+	var exsiting_localizations = {}
 	if FileAccess.file_exists(abs_csv_path):
 		var existing_csv_text = FileAccess.get_file_as_string(abs_csv_path)
-		translated_strings = GDStringTableEntry.parse_from_csv(existing_csv_text)
+		for localization in Localization.parse_from_csv(existing_csv_text):
+			exsiting_localizations[localization.local_code] = localization
 	else:
-		print("CSV file %s did not exist for locale %s. A new file will be created at that location." % [csv_resource_path, language])
-		modificaions_needed = true
+		print("CSV file %s does not exist. A new file will be created at that location." % [csv_resource_path])
 		
-	# Convert both enumerables to dictionaries, for easier lookup
-	# The list of line IDs present in each localisation	
-	var base_ids = []
-	var base_dictionary = {}
-	for entry in base_localization_strings:
-		base_dictionary[entry.id] = entry
-		base_ids.push_back(entry.id)
-	
-	var translated_ids = []
-	var translated_dictionary = {}
-	for entry in translated_strings:
-		translated_dictionary[entry.id] = entry
-		translated_ids.push_back(entry.id)
-		if base_dictionary.has(entry.id):
-			entry.original = base_dictionary[entry.id].text
-	
-	# The list of line IDs that are ONLY present in each localisation
-	var only_in_base_ids = base_ids.filter(func(id): return not translated_ids.has(id))
-	var only_in_translated_ids = translated_ids.filter(func(id): return not base_ids.has(id))
-	
-	# Remove every entry whose ID is only present in the translated set. 
-	# This entry has been removed from the base localization.
-	for id in only_in_base_ids:
-		var base_entry = base_dictionary[id] as GDStringTableEntry
-		base_entry.file = ProjectSettings.localize_path(base_entry.file)
-		var new_entery = GDStringTableEntry.new()
-		new_entery.comment = base_entry.comment
-		new_entery.file = base_entry.file
-		new_entery.id = base_entry.id
-		new_entery.line_number = base_entry.line_number
-		new_entery.lock = base_entry.lock
-		new_entery.node = base_entry.node
-		
-		# Empty this text, so that it's apparent that a translated version needs to be provided.
-		new_entery.text = ""
-		new_entery.original = base_entry.text
-		new_entery.language = language
-		
-		translated_dictionary[id] = new_entery
-		modificaions_needed = true
-	
-	# Finally, we need to check for any entries in the translated localisation that:
-	# 1. have the same line ID as one in the base, but
-	# 2. have a different Lock (the hash of the text), which indicates that the base text has changed.
-	# First, get the list of IDs that are in both base and translated, and then filter this list to 
-	# any where the lock values differ
-	var out_of_date_lock_ids = []
-	for id in base_dictionary:
-		if translated_dictionary.has(id) && base_dictionary[id].lock != translated_dictionary[id].lock:
-			out_of_date_lock_ids.push_back(id)
-			
-	# Now loop over all of these, and update our translated dictionary to include a note that 
-	# it needs attention
-	for id in out_of_date_lock_ids:
-		var entry = translated_dictionary[id]
-		entry.text = "(NEEDS UPDATE) %s" % entry.text
-		entry.original = base_dictionary[id].text
-		entry.lock = base_dictionary[id].lock
-		translated_dictionary[id] = entry
-		modificaions_needed = true
-		
-	# We're all done!
-	if not modificaions_needed:
-		if generate_translation:
-			_generate_godot_translation(language, csv_resource_path)
-		return false
-		
-	# We need to produce a replacement CSV file for the translated entries.
-	var output_string_entries = translated_dictionary.values()
-	output_string_entries.sort_custom(
-		func (a: GDStringTableEntry, b: GDStringTableEntry):
-			return a.file < b.file || int(a.line_number) < int(b.line_number))
-	var output_csv = GDStringTableEntry.create_csv(output_string_entries)
-	
-	# Write out the replacement text to this existing file, replacing 
-	# its existing contents
+	# Merge with the passes localization files
+	for localization in localizations:
+		if not exsiting_localizations.has(localization.local_code):
+			exsiting_localizations[localization.local_code] = localization
+		else:
+			for key in localization.string_table:
+				exsiting_localizations[localization.local_code].add_localized_string_to_asset(key, localization.string_table[key])
+				
+	# Convert back to a csv
+	var output_csv = Localization.generate_localization_csv(exsiting_localizations.values())
 	FileAccess.open(abs_csv_path, FileAccess.WRITE).store_string(output_csv)
-	var csv_import = "%s.import" % abs_csv_path
-	if not FileAccess.file_exists(csv_import):
-		FileAccess.open(csv_import, FileAccess.WRITE).store_string("[remap]\n\nimporter=\"keep\"")
-	if generate_translation:
-		_generate_godot_translation(language, csv_resource_path)
-		
+	EditorInterface.get_resource_filesystem().scan_sources()
 	return true
-	
-static func _generate_godot_translation(language: String, csv_file_path: String):
-	var abs_csv_path = ProjectSettings.globalize_path(csv_file_path)
-	var translation = Translation.new()
-	translation.locale = language
-	
-	var csv_text = FileAccess.get_file_as_string(abs_csv_path)
-	var string_entries = GDStringTableEntry.parse_from_csv(csv_text)
-	for entry in string_entries:
-		translation.add_message(entry.id, entry.text)
-	
-	var extension_regex = RegEx.create_from_string(".csv$")
-	var translation_path = extension_regex.sub(abs_csv_path, ".translation")
-	var translation_res_path = ProjectSettings.localize_path(translation_path)
-	ResourceSaver.save(translation, translation_res_path)
-	print("Wrote translation file for %s to %s." % [language, translation_res_path])
 	
 static func _update_yarn_project_task(project: YarnProject):
 	# Attempt to update the project file incase there where any changes
@@ -251,4 +137,4 @@ static func _find_all_files(dir: String, patterns: Array[String]):
 	return files
 	
 static func write_base_language_strings_csv(project: YarnProject, path: String):
-	_update_localization_file(project.base_localization.get_string_table_entries(), project.get_base_language(), path, false)
+	_update_localization_file([project.base_localization], path)
