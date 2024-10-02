@@ -21,6 +21,7 @@ use crate::yarn_variable_storage::{VariableStorageWrapper, YarnVariableStorage};
 pub enum YarnDialogueResult {
     #[default]
     Ok,
+    DialogueComplete,
     MarkupParseError,
     LineProviderError,
     InvalidOptionIdError,
@@ -157,6 +158,7 @@ impl DialogueRunner {
         return match self.dialogue_runner.as_mut().unwrap().set_node(node_name) {
             Ok(_) => {
                 self.dialogue_running = true;
+                self.base_mut().emit_signal("dialogue_start".into(), &[]);
                 self.continue_dialogue()
             },
             Err(err) => {
@@ -192,7 +194,11 @@ impl DialogueRunner {
             return match runner.continue_() {
                 Ok(events) => {
                     self.process_events(events);
-                    YarnDialogueResult::Ok
+                    if self.is_dialogue_running() {
+                        return YarnDialogueResult::Ok;
+                    } else {
+                        return YarnDialogueResult::DialogueComplete;
+                    }
                 }
                 Err(err) => {
                     push_error(&[err.to_string().to_variant()]);
@@ -233,9 +239,15 @@ impl DialogueRunner {
     }
 
     #[func]
-    pub fn register_function(&mut self, function_name: GString, callable: Callable) {
+    pub fn register_function(&mut self, function_name: GString, callable: Callable, return_type: i32) {
         if let Some(runner) = &mut self.dialogue_runner {
-            runner.library_mut().add_function(function_name.to_string(), YarnCallable::from_callable(callable));
+            match YarnCallable::from_callable(callable, VariantType{ord: return_type}) {
+                Ok(callable) => {
+                    runner.library_mut().add_function(function_name.to_string(), callable);
+                },
+                Err(err) => {panic!("{}", err)}
+            }
+
         }
     }
 }
