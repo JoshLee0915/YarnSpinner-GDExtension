@@ -1,5 +1,4 @@
 use godot::prelude::*;
-use godot::engine::Resource;
 
 #[derive(GodotClass)]
 #[class(tool, init, base=Resource)]

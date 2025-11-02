@@ -4,8 +4,8 @@ use std::path::Path;
 use std::str::FromStr;
 
 use glob::glob;
-use godot::engine::ProjectSettings;
-use godot::engine::utilities::push_error;
+use godot::classes::ProjectSettings;
+use godot::global::push_error;
 use godot::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -121,8 +121,8 @@ impl YarnProject {
     #[func]
     pub fn load_from_file(&mut self, file: GString) {
         // TODO: Better error handling
-        let path = ProjectSettings::singleton().globalize_path(file.clone()).to_string();
-        let project_file = fs::read_to_string(&path).expect(&format!("Failed to load {}", &path));
+        let path = ProjectSettings::singleton().globalize_path(&file);
+        let project_file = fs::read_to_string(path.to_string()).expect(&format!("Failed to load {}", &path));
         let project = serde_json::from_str::<Project>(&project_file).expect("Failed to serialize json to Project type");
         if project.file_version != 2 {
             push_error(&[format!("Project file at {} has incorrect file version (expected {}, got {})", file, 2,  self.project.file_version).to_variant()]);
@@ -145,7 +145,7 @@ impl YarnProject {
     #[func]
     pub fn save_project(&self) {
         let project_path = &self.json_project_path;
-        self.save_to_file(ProjectSettings::singleton().globalize_path(project_path.clone()));
+        self.save_to_file(ProjectSettings::singleton().globalize_path(project_path));
     }
 
     #[func]
@@ -170,7 +170,7 @@ impl YarnProject {
             for entry in glob(&full_pattern).expect("Failed to read glob pattern") {
                 match entry {
                     Ok(path) => {
-                        exclude.push(GString::from_str(path.to_str().unwrap()).unwrap())
+                        exclude.push(&GString::from_str(path.to_str().unwrap()).unwrap())
                     }
                     Err(err) => { panic!("{}", err) }
                 }
@@ -185,7 +185,7 @@ impl YarnProject {
                     Ok(path) => {
                         let file_path = GString::from_str(path.to_str().unwrap()).unwrap();
                         if !exclude.contains(&file_path) {
-                            source_files.push(file_path);
+                            source_files.push(&file_path);
                         }
                     }
                     Err(err) => { panic!("{}", err) }
@@ -204,7 +204,7 @@ impl YarnProject {
     pub fn get_source_file_patterns(&self) -> Array<GString> {
         let mut patterns = Array::<GString>::new();
         for source_file in &self.project.source_files {
-            patterns.push(source_file.to_godot())
+            patterns.push(source_file)
         }
         return patterns;
     }

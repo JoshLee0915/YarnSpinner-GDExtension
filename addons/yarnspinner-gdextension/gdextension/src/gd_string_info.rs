@@ -17,7 +17,7 @@ impl GDStringInfo {
     pub fn from_string_info(string_info: &StringInfo) -> Gd<GDStringInfo> {
         let mut metadata = array![];
         for m in &string_info.metadata {
-            metadata.push(m.to_godot())
+            metadata.push(m)
         }
 
         return Gd::from_init_fn(|base|{

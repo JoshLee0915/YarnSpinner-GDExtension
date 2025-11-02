@@ -1,5 +1,5 @@
 use std::error::Error;
-use godot::engine::ProjectSettings;
+use godot::classes::ProjectSettings;
 use godot::prelude::*;
 use yarnspinner::compiler::Declaration;
 use yarnspinner::core::{Type, YarnValue};
@@ -45,7 +45,7 @@ impl GDDeclaration {
         decl_bind.name = decl.name.to_godot();
         decl_bind.description = decl.description.unwrap_or("".to_string()).to_godot();
         decl_bind.is_implicit = decl.is_implicit;
-        decl_bind.source_yarn_asset_path = ProjectSettings::singleton().localize_path(decl.source_file_name.to_string().to_godot());
+        decl_bind.source_yarn_asset_path = ProjectSettings::singleton().localize_path(&decl.source_file_name.to_string());
 
         return match decl.r#type {
             Type::Boolean => {

@@ -1,10 +1,9 @@
-use godot::builtin::{Array, array, dict, Dictionary, GString};
-use godot::engine::Object;
-use godot::obj::{Base, Gd};
-use godot::prelude::{Export, GodotClass, GodotConvert, ToGodot, Var};
-use yarnspinner::compiler::{Compilation, CompilerError, Diagnostic, DiagnosticSeverity};
 use crate::gd_declaration::GDDeclaration;
 use crate::gd_string_info::GDStringInfo;
+use godot::builtin::{array, Array, Dictionary, GString};
+use godot::obj::{Base, Gd};
+use godot::prelude::{vdict, Export, GodotClass, GodotConvert, Object, ToGodot, Var};
+use yarnspinner::compiler::{Compilation, CompilerError, Diagnostic, DiagnosticSeverity};
 
 #[derive(GodotConvert, Var, Export, Default)]
 #[godot(via = GString)]
@@ -112,7 +111,7 @@ impl GDCompilation {
             .expect("Unable to serialize Yarn Program to JSON")
             .to_godot();
 
-        let mut string_table = dict!{};
+        let mut string_table = vdict!{};
         for (line_id, string_info) in compilation.string_table {
             let k = line_id.0;
             string_table.set(k.clone(), GDStringInfo::from_string_info(&string_info));
@@ -120,12 +119,12 @@ impl GDCompilation {
 
         let mut declarations = array![];
         for declaration in compilation.declarations {
-            declarations.push(GDDeclaration::from_declaration(&declaration).unwrap());
+            declarations.push(&GDDeclaration::from_declaration(&declaration).unwrap());
         }
 
         let mut warnings = array![];
         for wrn in compilation.warnings {
-            warnings.push(GDDiagnostic::from_diagnostic(&wrn));
+            warnings.push(&GDDiagnostic::from_diagnostic(&wrn));
         }
 
         return Gd::from_init_fn(|base| {
@@ -146,7 +145,7 @@ impl GDCompilation {
     pub fn from_compilation_error(error: CompilerError) -> Gd<Self> {
         let mut errors = array![];
         for e in error.0 {
-            errors.push(GDDiagnostic::from_diagnostic(&e));
+            errors.push(&GDDiagnostic::from_diagnostic(&e));
         }
 
         return Gd::from_init_fn(|base| {

@@ -14,7 +14,7 @@ mod yarn_dialogue_option;
 mod yarn_conversion_utils;
 mod yarn_callable;
 
-use godot::engine::Engine;
+use godot::classes::Engine;
 use godot::prelude::*;
 use crate::yarn_compiler::{YARN_COMPILER_SINGLETON_NAME, YarnCompilerSingleton};
 
@@ -28,8 +28,8 @@ unsafe impl ExtensionLibrary for YarnSpinner {
             InitLevel::Servers => {}
             InitLevel::Scene => {
                 Engine::singleton().register_singleton(
-                    StringName::from(YARN_COMPILER_SINGLETON_NAME),
-                    YarnCompilerSingleton::new_alloc().upcast(),
+                    YARN_COMPILER_SINGLETON_NAME,
+                    &YarnCompilerSingleton::new_alloc(),
                 );
             }
             InitLevel::Editor => {}
@@ -43,10 +43,10 @@ unsafe impl ExtensionLibrary for YarnSpinner {
             InitLevel::Scene => {
                 let mut engine = Engine::singleton();
                 let singleton = engine
-                    .get_singleton(StringName::from(YARN_COMPILER_SINGLETON_NAME))
+                    .get_singleton(YARN_COMPILER_SINGLETON_NAME)
                     .expect("cannot retrieve the singleton");
 
-                engine.unregister_singleton(StringName::from(YARN_COMPILER_SINGLETON_NAME));
+                engine.unregister_singleton(YARN_COMPILER_SINGLETON_NAME);
                 singleton.free();
             }
             InitLevel::Editor => {}

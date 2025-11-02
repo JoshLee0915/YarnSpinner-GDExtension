@@ -1,7 +1,6 @@
-use godot::engine::{ProjectSettings, ResourceSaver};
-use godot::engine::global::Error;
-use godot::engine::resource_saver::SaverFlags;
-use godot::engine::utilities::push_error;
+use godot::classes::{ProjectSettings, ResourceSaver};
+use godot::classes::resource_saver::SaverFlags;
+use godot::global::{push_error, Error};
 use godot::prelude::*;
 use yarnspinner::compiler::Compiler;
 use yarnspinner::core::Library;
@@ -30,7 +29,7 @@ impl YarnCompilerSingleton {
         let path = yarn_project.base().get_path().to_string();
         let asset_path = std::path::Path::new(&path);
 
-        yarn_project.base_mut().set_name(asset_path.file_name().unwrap().to_str().unwrap().to_godot());
+        yarn_project.base_mut().set_name(&asset_path.file_name().unwrap().to_str().unwrap().to_godot());
         let source_scripts = yarn_project.get_source_files();
         if source_scripts.is_empty() {
             push_error(&[format!("No .yarn files found matching the set pattern {}", yarn_project.get_source_files()).to_variant()]);
@@ -43,7 +42,7 @@ impl YarnCompilerSingleton {
         let mut yarn_files = vec![];
         for source_script in source_scripts.iter_shared() {
             if !source_script.is_empty() {
-                let global_path = ProjectSettings::singleton().globalize_path(source_script).to_string();
+                let global_path = ProjectSettings::singleton().globalize_path(&source_script).to_string();
                 yarn_files.push(global_path.clone());
             }
         }
@@ -86,14 +85,14 @@ impl YarnCompilerSingleton {
                         match existing_declaration {
                             None => {
                                 match GDDeclaration::from_declaration(&declaration) {
-                                    Ok(decl) => new_declarations.push(decl),
+                                    Ok(decl) => new_declarations.push(&decl),
                                     Err(e) => {
                                         panic!("{}", e)
                                     }
                                 }
                             }
                             Some(decl) => {
-                                new_declarations.push(decl);
+                                new_declarations.push(&decl);
                             }
                         }
                     }
@@ -110,8 +109,8 @@ impl YarnCompilerSingleton {
                     let path = yarn_project.import_path.clone();
                     drop(yarn_project);
                     let err = ResourceSaver::singleton()
-                        .save_ex(project.upcast())
-                        .path(path)
+                        .save_ex(&project)
+                        .path(&path)
                         .flags(SaverFlags::REPLACE_SUBRESOURCE_PATHS)
                         .done();
 
@@ -121,10 +120,10 @@ impl YarnCompilerSingleton {
                 }
                 Err(errors) => {
                     for info in errors.0 {
-                        yarn_project.project_errors.push(YarnProjectError::new_gd());
+                        yarn_project.project_errors.push(&YarnProjectError::new_gd());
                         let mut p = yarn_project.project_errors.back().expect("Failed to unwrap the newly created error");
                         let mut gd_error_mut = p.bind_mut();
-                        gd_error_mut.file_name = ProjectSettings::singleton().localize_path(info.file_name.unwrap_or("".to_string()).to_godot());
+                        gd_error_mut.file_name = ProjectSettings::singleton().localize_path(&info.file_name.unwrap_or("".to_string()).to_godot());
                         gd_error_mut.message = info.message.to_godot();
                         gd_error_mut.context = info.context.unwrap_or("".to_string()).to_godot();
 
@@ -140,7 +139,7 @@ impl YarnCompilerSingleton {
         let mut yarn_file_paths = vec![];
         for source_script in yarn_files.iter_shared() {
             if !source_script.is_empty() {
-                let global_path = ProjectSettings::singleton().globalize_path(source_script).to_string();
+                let global_path = ProjectSettings::singleton().globalize_path(&source_script).to_string();
                 yarn_file_paths.push(global_path.clone());
             }
         }

@@ -47,19 +47,18 @@ static func add_line_tags_to_files_in_yarn_project(project: YarnProject):
 		print("No files needed updating.")
 
 static func get_destination_project_path(script_path: String):
-	var dest_project_path = null
 	var global_script_path = ProjectSettings.globalize_path(script_path)
 	for project_local_path in _find_all_yarn_projects():
 		var project_path = ProjectSettings.globalize_path(project_local_path).replace("\\", "/")
 		var loaded_project = YarnProject.new()
 		loaded_project.load_from_file(project_path)
-		if loaded_project.get_source_files().any(global_script_path):
-			dest_project_path = ProjectSettings.localize_path(project_path)
-			break
-	return dest_project_path
+		if loaded_project.get_source_files().any(func (file): return ProjectSettings.localize_path(file) == script_path):
+			return project_local_path
+	return null
 	
 static func update_yarn_project(project: YarnProject):
 	if project == null || project.resource_path.is_empty():
+		printerr("Failed to")
 		return
 	_update_yarn_project_task(project)
 	
@@ -108,32 +107,40 @@ static func _update_localization_file(localizations: Array[Localization], csv_re
 	
 static func _update_yarn_project_task(project: YarnProject):
 	# Attempt to update the project file incase there where any changes
+	
 	project.load_from_file(project.json_project_path)
 	YarnCompiler.compile_all_scripts(project)
 	save_yarn_project(project)
 	
 static func _find_all_yarn_projects():
-	var root_dir = ProjectSettings.globalize_path("res://")
+	var root_dir = "res://"
 	var project_files = []
 	for project in _find_all_files(root_dir, ["**/*.yarnproject"]):
-		project_files.append(ProjectSettings.localize_path(project))
+		project_files.append(project)
 	return project_files
 
 static func _find_all_files(dir: String, patterns: Array[String]):
 	var dir_access = DirAccess.open(dir)
+	if dir_access == null:
+		return []
+	dir_access.include_hidden = true
 	dir_access.list_dir_begin()
 	
 	var files = []
 	var item = dir_access.get_next()
 	while not item.is_empty():
-		if dir_access.current_is_dir():
-			files.append_array(_find_all_files(item, patterns))
+		var full_path = "%s/%s" % [dir.trim_suffix("/"), item]
+		if item.begins_with("."):
+			pass
+		elif dir_access.current_is_dir():
+			files.append_array(_find_all_files(full_path, patterns))
 		else:
 			for pattern in patterns:
-				if item.match(pattern):
-					files.append(item)
+				if full_path.match(pattern):
+					files.append(full_path)
 					break
 		item = dir_access.get_next()
+	dir_access.list_dir_end()
 	return files
 	
 static func write_base_language_strings_csv(project: YarnProject, path: String):

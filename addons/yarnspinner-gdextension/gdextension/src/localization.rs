@@ -18,7 +18,7 @@ pub struct Localization {
 
 impl Localization {
     pub fn new(local_code: &str, string_table: HashMap<LineId, StringInfo>) -> Gd<Self> {
-        let mut table = dict! {};
+        let mut table = vdict!{};
         for (line_id, string_info) in string_table {
             table.set(line_id.0.to_godot(), string_info.text.to_godot());
         }
@@ -42,7 +42,7 @@ impl Localization {
             push_warning(&[format!("Local code {} does not match the passed local of {}", self.local_code.clone(), bound_localization.local_code.clone()).to_variant()]);
             return;
         }
-        self.runtime_string_table.extend_dictionary(bound_localization.string_table.clone(), false)
+        self.runtime_string_table.extend_dictionary(&bound_localization.string_table, false)
     }
 
     #[func]
@@ -64,7 +64,7 @@ impl Localization {
         let mut entries = array![];
         for value in self.string_table.values_array().iter_shared() {
             let entry: GString = value.to();
-            entries.push(entry);
+            entries.push(&entry);
         }
         return entries;
     }
@@ -93,8 +93,8 @@ impl Localization {
     #[func]
     pub fn get_line_ids(&self) -> VariantArray {
         let mut keys = array![];
-        keys.extend_array(self.runtime_string_table.keys_array());
-        keys.extend_array(self.string_table.keys_array());
+        keys.extend_array(&self.runtime_string_table.keys_array());
+        keys.extend_array(&self.string_table.keys_array());
         return keys;
     }
 
@@ -171,7 +171,7 @@ impl Localization {
 
         let mut result = array![];
         for value in localizations.values() {
-            result.push(value.clone());
+            result.push(value);
         }
         return result;
     }

@@ -33,9 +33,9 @@ pub struct YarnVariableStorage {
 #[godot_api]
 impl YarnVariableStorage {
     #[signal]
-    fn variable_changed(variable_name: GString, new_value: Variant) {}
+    fn variable_changed(variable_name: GString, new_value: Variant);
     #[signal]
-    fn store_cleared() {}
+    fn store_cleared();
 
     #[func]
     pub fn get_variables(&self) -> Dictionary {
@@ -50,7 +50,7 @@ impl YarnVariableStorage {
         return match Self::validate_name(variable_name.to_string()) {
             Ok(_) => {
                 self.store.set(variable_name.to_variant(), value.clone());
-                self.base_mut().emit_signal(StringName::from("variable_changed"), &[variable_name.to_variant(), value.clone()]);
+                self.signals().variable_changed().emit(&variable_name, &value);
                 YarnVariableSetResult::Ok
             }
             Err(_) => {
@@ -61,7 +61,7 @@ impl YarnVariableStorage {
     }
     #[func]
     pub fn set_variables(&mut self, values: Dictionary) -> Dictionary {
-        let mut results = dict! {};
+        let mut results = vdict! {};
 
         for (key, value) in values.iter_shared() {
             let result = self.set_variable(key.stringify(), value);
@@ -73,7 +73,7 @@ impl YarnVariableStorage {
     #[func]
     pub fn clear(&mut self) {
         self.store.clear();
-        self.base_mut().emit_signal(StringName::from("store_cleared"), &[]);
+        self.signals().store_cleared().emit();
     }
     #[func]
     pub fn contains(&self, variable_name: GString) -> bool {

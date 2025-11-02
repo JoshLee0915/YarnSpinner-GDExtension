@@ -1,8 +1,7 @@
 use std::any::Any;
 use std::sync::{Arc, Mutex};
 
-use godot::builtin::StringName;
-use godot::engine::TranslationServer;
+use godot::classes::TranslationServer;
 use godot::obj::Gd;
 use godot::prelude::ToGodot;
 use yarnspinner::core::LineId;
@@ -33,7 +32,7 @@ impl TextProvider for TranslationServerTextProvider {
     }
 
     fn get_text(&self, id: &LineId) -> Option<String> {
-        let translated_line = TranslationServer::singleton().translate(StringName::from(&id.0));
+        let translated_line = TranslationServer::singleton().translate(&id.0);
         // If we get a string back that is the same as the ID attempt to use the fallback local if set
         if translated_line.to_string() == id.0 {
             return match &self.fallback_localization {
@@ -56,7 +55,7 @@ impl TextProvider for TranslationServerTextProvider {
 
     fn set_language(&mut self, language: Option<Language>) {
         if let Some(locale) = language {
-            TranslationServer::singleton().set_locale(locale.to_string().to_godot());
+            TranslationServer::singleton().set_locale(&locale.to_string());
         }
     }
 
@@ -67,7 +66,7 @@ impl TextProvider for TranslationServerTextProvider {
 
     fn are_lines_available(&self) -> bool {
         let locale = TranslationServer::singleton().get_locale();
-        let translation = TranslationServer::singleton().get_translation_object(locale.clone());
+        let translation = TranslationServer::singleton().get_translation_object(&locale);
         return match translation {
             None => {
                 match &self.fallback_localization {

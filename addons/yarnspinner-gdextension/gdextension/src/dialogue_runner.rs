@@ -1,6 +1,5 @@
 use std::collections::HashMap;
-
-use godot::engine::utilities::{push_error, push_warning};
+use godot::global::{push_error, push_warning};
 use godot::prelude::*;
 use rand::prelude::SmallRng;
 use rand::{Rng, SeedableRng};
@@ -56,25 +55,25 @@ pub struct DialogueRunner {
 #[godot_api]
 impl DialogueRunner {
     #[signal]
-    fn node_start(node_name: GString) {}
+    fn node_start(node_name: GString);
 
     #[signal]
-    fn node_complete(node_name: GString) {}
+    fn node_complete(node_name: GString);
 
     #[signal]
-    fn dialogue_start() {}
+    fn dialogue_start();
 
     #[signal]
-    fn dialogue_complete() {}
+    fn dialogue_complete();
 
     #[signal]
-    fn next_line(line: Gd<YarnLine>) {}
+    fn next_line(line: Gd<YarnLine>);
 
     #[signal]
-    fn next_line_hints(line_ids: Array<GString>) {}
+    fn next_line_hints(line_ids: Array<GString>);
 
     #[signal]
-    fn options_available(options: Array<Gd<YarnDialogueOption>>) {}
+    fn options_available(options: Array<Gd<YarnDialogueOption>>);
 
     #[func]
     pub fn is_dialogue_running(&self) -> bool {
@@ -106,7 +105,7 @@ impl DialogueRunner {
             None => push_warning(&[format!("Node {} not found", node_name).to_variant()]),
             Some(node_tags) => {
                 for tag in node_tags {
-                    tags.push(tag.to_godot());
+                    tags.push(&tag);
                 }
             }
         }
@@ -158,7 +157,7 @@ impl DialogueRunner {
         return match self.dialogue_runner.as_mut().unwrap().set_node(node_name) {
             Ok(_) => {
                 self.dialogue_running = true;
-                self.base_mut().emit_signal("dialogue_start".into(), &[]);
+                self.signals().dialogue_start().emit();
                 self.continue_dialogue()
             },
             Err(err) => {
@@ -239,9 +238,17 @@ impl DialogueRunner {
     }
 
     #[func]
-    pub fn register_function(&mut self, function_name: GString, callable: Callable, return_type: i32) {
+    pub fn register_function(&mut self, function_name: GString, callable: Callable, return_type: i32, parameters: Array<Variant>) {
+        let mut params = vec!();
+        for param in parameters.iter_shared() {
+            match param.get_type() {
+                VariantType::INT => params.push(VariantType{ord: param.to()}),
+                _ => panic!("Invalid argument type, only type IDs (ints) can be used")
+            }
+        }
+
         if let Some(runner) = &mut self.dialogue_runner {
-            match YarnCallable::from_callable(callable, VariantType{ord: return_type}) {
+            match YarnCallable::from_callable(callable, VariantType{ord: return_type}, &params) {
                 Ok(callable) => {
                     runner.library_mut().add_function(function_name.to_string(), callable);
                 },
@@ -258,43 +265,43 @@ impl DialogueRunner {
             match event {
                 DialogueEvent::Line(line) => {
                     let yarn_line = YarnLine::new(&line);
-                    self.base_mut().emit_signal(StringName::from("next_line"), &[yarn_line.to_variant()]);
+                    self.signals().next_line().emit(&yarn_line);
                     self.current_line = Some(yarn_line.clone());
                 }
                 DialogueEvent::Options(options) => {
                     let mut dialogue_options = array![];
                     for option in options {
-                        dialogue_options.push(YarnDialogueOption::new(&option));
+                        dialogue_options.push(&YarnDialogueOption::new(&option));
                     }
-                    self.base_mut().emit_signal(StringName::from("options_available"), &[dialogue_options.to_variant()]);
-                    self.current_options.extend_array(dialogue_options);
+                    self.signals().options_available().emit(&dialogue_options);
+                    self.current_options.extend_array(&dialogue_options);
                 }
                 DialogueEvent::Command(command) => {
                     if let Some(callable) = self.commands.get(&StringName::from(command.name.clone())) {
                         let mut parameters = array![];
                         for parameter in &command.parameters {
-                            parameters.push(YarnConversionUtils::yarn_value_to_variant(parameter));
+                            parameters.push(&YarnConversionUtils::yarn_value_to_variant(parameter));
                         }
-                        callable.callv(parameters);
+                        callable.callv(&parameters);
                     } else {
                         push_warning(&[format!("Failed to find registered command '{}'", command.name.clone()).to_variant()]);
                     }
                 }
                 DialogueEvent::NodeComplete(node_name) => {
-                    self.base_mut().emit_signal(StringName::from("node_complete"), &[node_name.to_variant()]);
+                    self.signals().node_complete().emit(&node_name);
                 }
                 DialogueEvent::NodeStart(node_name) => {
-                    self.base_mut().emit_signal(StringName::from("node_start"), &[node_name.to_variant()]);
+                    self.signals().node_start().emit(&node_name);
                 }
                 DialogueEvent::LineHints(hints) => {
                     let mut line_ids = array![];
                     for line_id in hints {
-                        line_ids.push(line_id.0.to_variant());
+                        line_ids.push(&line_id.0);
                     }
-                    self.base_mut().emit_signal(StringName::from("next_line_hints"), &[line_ids.to_variant()]);
+                    self.signals().next_line_hints().emit(&line_ids);
                 }
                 DialogueEvent::DialogueComplete => {
-                    self.base_mut().emit_signal(StringName::from("dialogue_complete"), &[]);
+                    self.signals().dialogue_complete().emit();
                     self.dialogue_running = false;
                 }
             }

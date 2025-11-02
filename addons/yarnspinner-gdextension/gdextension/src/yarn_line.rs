@@ -38,9 +38,9 @@ impl YarnMarkupAttribute {
     #[func]
     pub fn get_properties(&self) -> Dictionary {
         return match &self.attribute {
-            None => dict! {},
+            None => vdict! {},
             Some(attribute) => {
-                let mut prop_dict = dict! {};
+                let mut prop_dict = vdict! {};
                 for (key, value) in &attribute.properties {
                     prop_dict.set(key.to_variant(), Self::markup_value_to_variant(value));
                 }
