@@ -1,11 +1,10 @@
-use std::collections::HashMap;
+use crate::localization::Localization;
 use godot::global::{push_error, push_warning};
 use godot::prelude::*;
-use rand::prelude::SmallRng;
-use rand::{Rng, SeedableRng};
+use rand::Rng;
+use std::collections::HashMap;
 use yarnspinner::core::{Library, Program};
 use yarnspinner::prelude::{Dialogue, DialogueEvent, YarnLibrary};
-use crate::localization::Localization;
 
 use crate::project::YarnProject;
 use crate::translation_server_text_provider::TranslationServerTextProvider;
@@ -17,6 +16,7 @@ use crate::yarn_variable_storage::{VariableStorageWrapper, YarnVariableStorage};
 
 #[derive(GodotConvert, Var, Export, Default, Debug)]
 #[godot(via = GString)]
+#[derive(Clone)]
 pub enum YarnDialogueResult {
     #[default]
     Ok,
@@ -32,6 +32,8 @@ pub enum YarnDialogueResult {
     DialogueNotRunning,
     DialogueAlreadyRunning,
     DialogueRunnerNotSet,
+    NoProgramLoaded,
+    FunctionNotFound,
 }
 
 #[derive(GodotClass)]
@@ -74,6 +76,9 @@ impl DialogueRunner {
 
     #[signal]
     fn options_available(options: Array<Gd<YarnDialogueOption>>);
+
+    #[signal]
+    fn option_selected(selected_option: Gd<YarnDialogueOption>);
 
     #[func]
     pub fn is_dialogue_running(&self) -> bool {
@@ -218,7 +223,10 @@ impl DialogueRunner {
                     Some(option) => {
                         let result = runner.set_selected_option(option.id);
                         return match result {
-                            Ok(_) => YarnDialogueResult::Ok,
+                            Ok(_) => {
+                                self.signals().option_selected().emit(&selection);
+                                return YarnDialogueResult::Ok;
+                            },
                             Err(err) => YarnConversionUtils::yarn_dialogue_error_to_yarn_dialogue_result(&err),
                         }
                     },
@@ -229,12 +237,12 @@ impl DialogueRunner {
 
     #[func]
     pub fn register_command(&mut self, command_name: GString, callable: Callable) {
-        self.commands.insert(StringName::from(command_name), callable);
+        self.commands.insert(StringName::from(&command_name), callable);
     }
 
     #[func]
     pub fn remove_command(&mut self, command_name: GString) -> bool {
-        return self.commands.remove(&StringName::from(command_name)).is_some();
+        return self.commands.remove(&StringName::from(&command_name)).is_some();
     }
 
     #[func]
@@ -254,7 +262,6 @@ impl DialogueRunner {
                 },
                 Err(err) => {panic!("{}", err)}
             }
-
         }
     }
 }
@@ -277,7 +284,7 @@ impl DialogueRunner {
                     self.current_options.extend_array(&dialogue_options);
                 }
                 DialogueEvent::Command(command) => {
-                    if let Some(callable) = self.commands.get(&StringName::from(command.name.clone())) {
+                    if let Some(callable) = self.commands.get(&StringName::from(&command.name)) {
                         let mut parameters = array![];
                         for parameter in &command.parameters {
                             parameters.push(&YarnConversionUtils::yarn_value_to_variant(parameter));
@@ -311,20 +318,20 @@ impl DialogueRunner {
     fn build_library() -> Library {
         let mut library = YarnLibrary::standard_library();
         library
-            .add_function("random", || SmallRng::from_entropy().gen_range(0.0..1.0))
+            .add_function("random", || rand::rng().random_range(0.0..1.0))
             .add_function("random_range", |min: f32, max: f32| {
                 if let Some(min) = min.as_int() {
                     if let Some(max_inclusive) = max.as_int() {
-                        return SmallRng::from_entropy().gen_range(min..=max_inclusive) as f32;
+                        return rand::rng().random_range(min..=max_inclusive) as f32;
                     }
                 }
-                SmallRng::from_entropy().gen_range(min..max)
+                rand::rng().random_range(min..max)
             })
             .add_function("dice", |sides: u32| {
                 if sides == 0 {
                     return 1;
                 }
-                SmallRng::from_entropy().gen_range(1..=sides)
+                rand::rng().random_range(1..=sides)
             })
             .add_function("round", |num: f32| num.round() as i32)
             .add_function("round_places", |num: f32, places: u32| {

@@ -1,15 +1,14 @@
+use godot::global::push_warning;
 use std::any::Any;
-use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
-use godot::global::push_warning;
-
+use bevy_platform::collections::HashMap;
+use crate::yarn_conversion_utils::YarnConversionUtils;
 use godot::prelude::*;
 use yarnspinner::core::YarnValue;
 use yarnspinner::prelude::VariableStorage;
 use yarnspinner::runtime::VariableStorageError;
 use yarnspinner::runtime::VariableStorageError::{InternalError, InvalidVariableName, VariableNotFound};
-use crate::yarn_conversion_utils::YarnConversionUtils;
 
 #[derive(GodotConvert, Var, Export, Default, Debug)]
 #[godot(via = GString)]

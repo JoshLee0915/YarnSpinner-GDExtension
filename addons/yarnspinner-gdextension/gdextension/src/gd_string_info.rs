@@ -1,6 +1,7 @@
 use godot::prelude::*;
 use yarnspinner::compiler::StringInfo;
 
+#[allow(dead_code)]
 #[derive(GodotClass)]
 #[class(init, base=Object)]
 pub struct GDStringInfo {

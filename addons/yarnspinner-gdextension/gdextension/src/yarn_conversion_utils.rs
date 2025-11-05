@@ -18,6 +18,8 @@ impl YarnConversionUtils {
             DialogueError::NoNodeSelectedOnContinue => YarnDialogueResult::NoNodeSelectedOnContinue,
             DialogueError::InvalidNode { .. } => YarnDialogueResult::InvalidNode,
             DialogueError::VariableStorageError(_) => YarnDialogueResult::VariableStorageError,
+            DialogueError::NoProgramLoaded => YarnDialogueResult::NoProgramLoaded,
+            DialogueError::FunctionNotFound { .. } => YarnDialogueResult::FunctionNotFound,
         }
     }
 

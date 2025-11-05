@@ -129,7 +129,7 @@ impl YarnProject {
             return;
         }
         self.project = project;
-        self.json_project_path = path.to_godot();
+        self.json_project_path = path;
     }
 
     #[func]

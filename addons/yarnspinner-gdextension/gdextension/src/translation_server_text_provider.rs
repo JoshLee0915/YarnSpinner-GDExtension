@@ -1,7 +1,8 @@
+use godot::classes::TranslationServer;
+use godot::obj::Singleton;
 use std::any::Any;
 use std::sync::{Arc, Mutex};
 
-use godot::classes::TranslationServer;
 use godot::obj::Gd;
 use godot::prelude::ToGodot;
 use yarnspinner::core::LineId;
@@ -27,6 +28,10 @@ impl TranslationServerTextProvider {
 }
 
 impl TextProvider for TranslationServerTextProvider {
+    fn clone_shallow(&self) -> Box<dyn TextProvider> {
+        return Box::new(TranslationServerTextProvider{fallback_localization: self.fallback_localization.clone()});
+    }
+
     fn accept_line_hints(&mut self, _line_ids: &[LineId]) {
         // no-op
     }
