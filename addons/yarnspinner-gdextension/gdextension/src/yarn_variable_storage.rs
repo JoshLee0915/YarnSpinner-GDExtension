@@ -24,7 +24,7 @@ pub enum YarnVariableSetResult {
 pub struct YarnVariableStorage {
     base: Base<Node>,
     #[export]
-    store: Dictionary,
+    default_store: Dictionary,
 }
 
 // TODO: Look into using virtual when it is released with the godot 4.3 version
@@ -36,20 +36,40 @@ impl YarnVariableStorage {
     #[signal]
     fn store_cleared();
 
-    #[func]
-    pub fn get_variables(&self) -> Dictionary {
-        return self.store.clone();
+    #[func(gd_self)]
+    pub fn contains(instance :Gd<Self>, variable_name: GString) -> bool {
+        return instance.bind().contains_impl(variable_name);
     }
-    #[func]
-    pub fn get_variable(&self, variable_name: GString) -> Variant {
-        return self.store.get_or_nil(variable_name);
+
+    #[func(virtual)]
+    fn contains_impl(&self, variable_name: GString) -> bool {
+        return self.default_store.contains_key(variable_name);
     }
-    #[func]
-    pub fn set_variable(&mut self, variable_name: GString, value: Variant) -> YarnVariableSetResult {
+
+    #[func(gd_self)]
+    pub fn get_variables(instance :Gd<Self>) -> Dictionary {
+        return instance.bind().get_variables_impl()
+    }
+
+    #[func(virtual)]
+    fn get_variables_impl(&self) -> Dictionary { return self.default_store.clone(); }
+
+    #[func(gd_self)]
+    pub fn get_variable(instance :Gd<Self>, variable_name: GString) -> Variant {
+        return instance.bind().get_variable_impl(variable_name);
+    }
+
+    #[func(virtual)]
+    fn get_variable_impl(&self, variable_name: GString) -> Variant  {
+        return self.default_store.get_or_nil(variable_name);
+    }
+
+    #[func(gd_self)]
+    pub fn set_variable(mut instance :Gd<Self>, variable_name: GString, value: Variant) -> YarnVariableSetResult {
         return match Self::validate_name(variable_name.to_string()) {
             Ok(_) => {
-                self.store.set(variable_name.to_variant(), value.clone());
-                self.signals().variable_changed().emit(&variable_name, &value);
+                instance.bind_mut().set_variable_impl(variable_name.clone(), value.clone());
+                instance.signals().variable_changed().emit(&variable_name, &value);
                 YarnVariableSetResult::Ok
             }
             Err(_) => {
@@ -58,25 +78,38 @@ impl YarnVariableStorage {
             },
         }
     }
-    #[func]
-    pub fn set_variables(&mut self, values: Dictionary) -> Dictionary {
+
+    #[func(virtual)]
+    fn set_variable_impl(&mut self, variable_name: GString, value: Variant) {
+        self.default_store.set(variable_name.to_variant(), value.clone());
+    }
+
+    #[func(gd_self)]
+    pub fn set_variables(instance :Gd<Self>, values: Dictionary) -> Dictionary {
+        return Self::set_variables_impl(instance, values);
+    }
+
+    #[func(virtual, gd_self)]
+    fn set_variables_impl(instance :Gd<Self>, values: Dictionary) -> Dictionary {
         let mut results = vdict! {};
 
         for (key, value) in values.iter_shared() {
-            let result = self.set_variable(key.stringify(), value);
+            let result = Self::set_variable(instance.clone(), key.stringify(), value);
             results.set(key, result);
         }
 
         return results;
     }
-    #[func]
-    pub fn clear(&mut self) {
-        self.store.clear();
-        self.signals().store_cleared().emit();
+
+    #[func(gd_self)]
+    pub fn clear(mut instance :Gd<Self>) {
+        instance.bind_mut().clear_impl();
+        instance.signals().store_cleared().emit();
     }
-    #[func]
-    pub fn contains(&self, variable_name: GString) -> bool {
-        return self.store.contains_key(variable_name);
+
+    #[func(virtual)]
+    fn clear_impl(&mut self) {
+        self.default_store.clear();
     }
 }
 
@@ -113,7 +146,7 @@ impl VariableStorage for VariableStorageWrapper {
     }
 
     fn set(&mut self, name: String, value: YarnValue) -> Result<(), VariableStorageError> {
-        return match self.store.lock().unwrap().bind_mut().set_variable(name.to_godot(), YarnConversionUtils::yarn_value_to_variant(&value)) {
+        return match YarnVariableStorage::set_variable((*self.store.lock().unwrap()).clone(), name.to_godot(), YarnConversionUtils::yarn_value_to_variant(&value)) {
             YarnVariableSetResult::Ok => Ok(()),
             YarnVariableSetResult::InvalidVariableName => Err(InvalidVariableName{name: name.clone()}),
             YarnVariableSetResult::Unknown => Err(InternalError{error: format!("Failed to set {} to {}", name.clone(), value.clone()).into()}),
@@ -121,7 +154,7 @@ impl VariableStorage for VariableStorageWrapper {
     }
 
     fn get(&self, name: &str) -> Result<YarnValue, VariableStorageError> {
-        let value = self.store.lock().unwrap().bind().get_variable(name.to_godot());
+        let value = YarnVariableStorage::get_variable((*self.store.lock().unwrap()).clone(), name.to_godot());
         if value.is_nil() {
             return Err(VariableNotFound {name: name.to_string()})
         }
@@ -133,7 +166,7 @@ impl VariableStorage for VariableStorageWrapper {
     }
 
     fn contains(&self, name: &str) -> bool {
-        return self.store.lock().unwrap().bind().contains(name.to_godot());
+        return YarnVariableStorage::contains((*self.store.lock().unwrap()).clone(), name.to_godot());
     }
 
     fn extend(&mut self, values: HashMap<String, YarnValue>) -> Result<(), VariableStorageError> {
@@ -148,14 +181,14 @@ impl VariableStorage for VariableStorageWrapper {
 
     fn variables(&self) -> HashMap<String, YarnValue> {
         let mut hash_map = HashMap::new();
-        for (key, value) in self.store.lock().unwrap().bind().get_variables().iter_shared() {
+        for (key, value) in YarnVariableStorage::get_variables((*self.store.lock().unwrap()).clone()).iter_shared() {
             hash_map.insert(key.to_string(), YarnConversionUtils::variant_to_yarn_value(&value).unwrap());
         }
         return hash_map;
     }
 
     fn clear(&mut self) {
-        self.store.lock().unwrap().bind_mut().clear();
+        YarnVariableStorage::clear((*self.store.lock().unwrap()).clone());
     }
 
     fn as_any(&self) -> &dyn Any {

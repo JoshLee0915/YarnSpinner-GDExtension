@@ -1,6 +1,7 @@
 extends Control
 
 @export var dialogue_runner: DialogueRunner
+@export var variable_store: YarnVariableStorage
 
 @onready var label: RichTextLabel = $Panel/RichTextLabel
 @onready var options_container: VBoxContainer = $CenterContainer/VBoxContainer
@@ -9,6 +10,10 @@ extends Control
 func _ready():
 	dialogue_runner.start_dialogue("HelloWorld")
 	options_container.hide()
+	
+	variable_store.set_variable("$test", 1)
+	if variable_store.contains("$test"):
+		print("Stuff")
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.

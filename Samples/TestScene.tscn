@@ -1,23 +1,28 @@
-[gd_scene load_steps=3 format=3 uid="uid://dkwfr5uxgs2om"]
+[gd_scene load_steps=4 format=3 uid="uid://dkwfr5uxgs2om"]
 
 [ext_resource type="YarnProject" uid="uid://bxhkt6jqeh732" path="res://Samples/test/VisualNovel.yarnproject" id="1_ionue"]
+[ext_resource type="Script" uid="uid://dr5regff8nrpx" path="res://Samples/test/scripts/yarn_variable_storage_test.gd" id="2_252c0"]
 [ext_resource type="Script" uid="uid://vtaa0an1nilh" path="res://Samples/test/scripts/yarn_test.gd" id="2_fyb05"]
 
 [node name="TestScene" type="Node2D"]
 
 [node name="DialogueRunner" type="DialogueRunner" parent="." node_paths=PackedStringArray("yarn_variable_store")]
-yarn_variable_store = NodePath("../YarnVariableStorage")
+yarn_variable_store = NodePath("../YarnVariableStorage2")
 projects = Array[YarnProject]([ExtResource("1_ionue")])
 
 [node name="YarnVariableStorage" type="YarnVariableStorage" parent="."]
 
-[node name="Control" type="Control" parent="." node_paths=PackedStringArray("dialogue_runner")]
+[node name="YarnVariableStorage2" type="YarnVariableStorage" parent="."]
+script = ExtResource("2_252c0")
+
+[node name="Control" type="Control" parent="." node_paths=PackedStringArray("dialogue_runner", "variable_store")]
 layout_mode = 3
 anchors_preset = 0
 offset_right = 1151.0
 offset_bottom = 646.0
 script = ExtResource("2_fyb05")
 dialogue_runner = NodePath("../DialogueRunner")
+variable_store = NodePath("../YarnVariableStorage2")
 
 [node name="Panel" type="Panel" parent="Control"]
 layout_mode = 1

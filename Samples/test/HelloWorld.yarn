@@ -4,7 +4,9 @@ Hello World! To continue the dialogue, click with your mouse, press the space ba
 These are options. You can select one by clicking on it or pressing the corresponding number on your keyboard.
 -> Some cool option
 -> Some other cool option
-Now we'll jump to another node!
+=> Now we'll jump to another node!
+=> Up! Up! And Away!
+=> OH FUCK! JUMP!
 <<jump AnotherNode>>
 
 ===
