@@ -1,13 +1,13 @@
 [gd_scene load_steps=3 format=3 uid="uid://dkwfr5uxgs2om"]
 
-[ext_resource type="YarnProject" uid="uid://bxhkt6jqeh732" path="res://Samples/test/VisualNovel.yarnproject" id="1_bejeq"]
-[ext_resource type="Script" path="res://Samples/test/scripts/yarn_test.gd" id="2_fyb05"]
+[ext_resource type="YarnProject" uid="uid://bxhkt6jqeh732" path="res://Samples/test/VisualNovel.yarnproject" id="1_ionue"]
+[ext_resource type="Script" uid="uid://vtaa0an1nilh" path="res://Samples/test/scripts/yarn_test.gd" id="2_fyb05"]
 
 [node name="TestScene" type="Node2D"]
 
 [node name="DialogueRunner" type="DialogueRunner" parent="." node_paths=PackedStringArray("yarn_variable_store")]
 yarn_variable_store = NodePath("../YarnVariableStorage")
-projects = Array[YarnProject]([ExtResource("1_bejeq")])
+projects = Array[YarnProject]([ExtResource("1_ionue")])
 
 [node name="YarnVariableStorage" type="YarnVariableStorage" parent="."]
 
@@ -37,4 +37,18 @@ grow_vertical = 2
 text = "Tesuyiagvfigvwvvvvvvvvvvvvwvwvwvwvwv
 ivbudesiuybiubuib"
 
+[node name="CenterContainer" type="CenterContainer" parent="Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/CenterContainer"]
+custom_minimum_size = Vector2(350, 0)
+layout_mode = 2
+
 [connection signal="next_line" from="DialogueRunner" to="Control" method="_on_dialogue_runner_next_line"]
+[connection signal="option_selected" from="DialogueRunner" to="Control" method="_on_dialogue_runner_option_selected"]
+[connection signal="options_available" from="DialogueRunner" to="Control" method="_on_dialogue_runner_options_available"]
