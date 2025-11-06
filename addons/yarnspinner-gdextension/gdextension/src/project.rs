@@ -14,6 +14,8 @@ use crate::function_info::FunctionInfo;
 use crate::gd_declaration::GDDeclaration;
 use crate::localization::Localization;
 
+const YARN_FILE_VERSION: i32 = 2;
+
 #[derive(Serialize, Deserialize)]
 struct LocalizationInfo {
     #[serde(rename = "assets")]
@@ -124,8 +126,8 @@ impl YarnProject {
         let path = ProjectSettings::singleton().globalize_path(&file);
         let project_file = fs::read_to_string(path.to_string()).expect(&format!("Failed to load {}", &path));
         let project = serde_json::from_str::<Project>(&project_file).expect("Failed to serialize json to Project type");
-        if project.file_version != 2 {
-            push_error(&[format!("Project file at {} has incorrect file version (expected {}, got {})", file, 2,  self.project.file_version).to_variant()]);
+        if project.file_version != YARN_FILE_VERSION {
+            push_error(&[format!("Project file at {} has incorrect file version (expected {}, got {})", file, YARN_FILE_VERSION,  project.file_version).to_variant()]);
             return;
         }
         self.project = project;
